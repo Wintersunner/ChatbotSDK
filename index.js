@@ -8,6 +8,13 @@ class Chatbot {
         loginListener: null,
     }
 
+    _defaultForm = {
+        action: this.config.endpoint,
+        fields: [
+            {name: "message", type: "text", placeholder: "متن سوال یا پیام"}
+        ]
+    }
+
     start() {
         document.body.innerHTML += this.template();
 
@@ -48,17 +55,17 @@ class Chatbot {
         });
     }
 
-    userLoggedInWebsite(token) {
-        this._saveToken(token);
+    userLoggedInWebsite(token, refresh_token) {
+        this._saveToken(token, refresh_token);
         axios.post(`${this.config.endpoint}/logged-in`, {sender: this.sender}).then(() => {
 
         }).catch(() => {
             // console.log("Could not save user status");
-        })
+        });
     }
 
-    _userLoggedIn(token) {
-        this.config.loginListener(token);
+    _userLoggedIn(token, refresh_token) {
+        this.config.loginListener(token, refresh_token);
     }
 
     _toggleChat(isInitial = false) {
@@ -81,15 +88,18 @@ class Chatbot {
         this._toggleSubmission();
         const formData = new FormData(this.form)
         formData.append('sender', this.sender);
+        if (this.accessToken) {
+            formData.append('access_token', this.accessToken);
+        }
         axios.post(this.form.getAttribute('action'), formData).then((response) => {
             const firstInput = this.form.querySelector('input')
             this._appendMessage(firstInput.value, false);
             this._appendMessage(response.data.custom.message);
-            this._updateForm(response.data.custom.form);
+            this._updateForm(response.data.custom.form ?? this._defaultForm);
 
-            if (response.data.access_token) {
-                this._saveToken(response.data.access_token);
-                this._userLoggedIn(this.accessToken);
+            if (response.data.custom?.access_token) {
+                this._saveToken(response.data.custom.access_token, response.data.custom.refresh_token);
+                this._userLoggedIn(response.data.custom.access_token, response.data.custom.refresh_token);
             }
 
             this.history.push({message: firstInput.value, isBot: false});
@@ -98,7 +108,8 @@ class Chatbot {
             storage.set('cb-history', this.history);
 
         }).catch((e) => {
-            this._appendMessage(e.response.data.message);
+            console.log(e);
+            this._appendMessage(e.response.data.message ?? "خطای ناشناخته");
         }).then(() => {
             this._toggleSubmission();
             this._scrollToTheEnd();
@@ -127,15 +138,25 @@ class Chatbot {
         const action = this.config.endpoint + form.action;
         const fields = form.fields;
         this.form.setAttribute('action', action);
-        let html = '';
+        // let html = '';
+        this.form.querySelector('#form-inputs').innerHTML = null;
         fields.forEach((field) => {
-            html += `<input autocomplete="off" class="cb-input" type="${field.type}" placeholder="${field.placeholder}" name="${field.name}">`
+            const input = document.createElement('input');
+            input.setAttribute('type', field.type);
+            input.setAttribute('placeholder', field.placeholder);
+            input.setAttribute('name', field.name);
+            if (field.value) {
+                input.value = field.value;
+            }
+            this.form.querySelector('#form-inputs').appendChild(input);
+            // html += `<input autocomplete="off" class="cb-input" type="${field.type}" placeholder="${field.placeholder}" name="${field.name}">`
         });
-        this.form.querySelector('#form-inputs').innerHTML = html;
+        // this.form.querySelector('#form-inputs').innerHTML = html;
     }
 
-    _saveToken(token) {
+    _saveToken(token, refresh_token) {
         storage.set('cb-access-token', token);
+        storage.set('cb-refresh-token', refresh_token);
         this.accessToken = token;
     }
 
