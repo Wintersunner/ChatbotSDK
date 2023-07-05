@@ -20,7 +20,8 @@ class Chatbot {
 
         this.sender = storage.setIfNull('cb-sender', this._uuid());
         this.history = storage.setIfNull('cb-history', []);
-        this.isOpen = storage.setIfNull('cb-is-open', false);
+        // this.isOpen = storage.setIfNull('cb-is-open', false);
+        this.isOpen = false;
         this.accessToken = storage.get('cb-access-token');
         this.processing = false;
 
@@ -71,8 +72,8 @@ class Chatbot {
     _toggleChat(isInitial = false) {
         this.button.classList.toggle('cb-hidden');
         document.querySelector('#cb-chat-container').classList.toggle('cb-hidden');
-        if (!isInitial)
-            storage.set('cb-is-open', !this.isOpen);
+        // if (!isInitial)
+        //     storage.set('cb-is-open', !this.isOpen);
         this._scrollToTheEnd();
     }
 
