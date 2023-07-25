@@ -21,9 +21,8 @@
     display: flex;
     flex-direction: column;
     background: white;
-    border: 1px solid gainsboro;
     width: 360px;
-    height: 480px;
+    height: 600px;
     border-radius: 1rem;
     margin-bottom: 24px;
     margin-right: 24px;
@@ -35,20 +34,31 @@
     border: none;
     background: none;
     cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px 0px rgba(0, 0, 0, 0.24);
 }
 
 .cb-title-container {
     display: flex;
     align-items: center;
-    padding: 1.4rem;
-    background-image: linear-gradient(141deg, rgb(41, 0, 65) 0%, rgb(19, 30, 121) 71%, rgb(16, 65, 171) 100%);
-    color: white;
+    padding: 0.8rem 1.4rem;
+    background-color: #F3E8FF;
+    color: black;
     font-weight: bold;
     font-size: 1.4rem;
+    border-bottom: 3px solid #E1E3E5;
 }
 
 .cb-title {
     flex-grow: 1;
+    font-size: 1.1rem;
+    font-weight: normal;
+}
+
+.cb-subtitle {
+    color: #7D00FF;
+    font-size: 0.8rem;
+    margin-top: 0.2rem;
 }
 
 .cb-hidden {
@@ -56,38 +66,42 @@
 }
 
 .cb-message-container {
-    margin: 1rem;
+    margin: 0 1rem;
     padding: 1rem;
-    border: 1px solid gainsboro;
-    border-radius: 1rem;
     flex-grow: 1;
-    box-shadow: rgba(165, 165, 165, 0.34) 0px 0px 6px inset;
     overflow-y: scroll;
 }
 
 .cb-forms-container {
     margin: 0 1rem 1rem;
+    display: flex;
+    align-items: center;
+}
+
+#form-inputs {
+    flex-grow: 1;
 }
 
 .cb-forms-container input {
-    box-shadow: rgba(10, 10, 10, 0.05) 0px 0.0625em 0.125em inset;
+    /*box-shadow: rgba(10, 10, 10, 0.05) 0px 0.0625em 0.125em inset;*/
     max-width: 100%;
     width: 100%;
     background-color: rgb(255, 255, 255);
     color: rgb(54, 54, 54);
-    border-color: rgb(219, 219, 219);
-    border-radius: 10px;
+    /*border-color: rgb(219, 219, 219);*/
+    /*border-radius: 10px;*/
     appearance: none;
     align-items: center;
     display: inline-flex;
-    font-size: 1rem;
+    font-size: 0.84rem;
     height: 2.5em;
+    outline: none !important;
     justify-content: flex-start;
     line-height: 1.5;
     padding: calc(0.5em - 1px) calc(0.75em - 1px);
     position: relative;
     vertical-align: top;
-    border-width: 1px;
+    /*border-width: 1px;*/
     border-style: solid;
     border-image: initial;
 }
@@ -105,17 +119,16 @@
 }
 
 .cb-buttons-container {
-    margin-top: 0.6rem;
+    /*margin-top: 0.6rem;*/
     text-align: left;
 }
 
 .cb-submit {
-    background-color: rgb(0, 209, 178);
+    /*background-color: rgb(0, 209, 178);*/
     color: rgb(255, 255, 255);
     border-color: transparent;
     cursor: pointer;
     justify-content: center;
-    padding: calc(0.5em - 1px) 1em;
     text-align: center;
     white-space: nowrap;
     border-width: 1px;
@@ -124,18 +137,8 @@
     font-size: 0.9rem;
 }
 
-.cb-submit:hover {
-    background-color: rgb(0, 196, 167);
-    color: rgb(255, 255, 255);
-    border-color: transparent;
-}
-
-.cb-submit:focus {
-    box-shadow: rgba(0, 209, 178, 0.25) 0px 0px 0px 0.125em;
-}
-
 .cb-submit:active {
-    background-color: rgb(0, 184, 156);
+    /*background-color: rgb(0, 184, 156);*/
     color: rgb(255, 255, 255);
     border-color: transparent;
 }
@@ -148,19 +151,24 @@
 
 .cb-reply {
     padding: 0.5rem;
-    width: 80%;
+    width: 100%;
     position: relative;
-    border-radius: 0.5rem;
-    background-color: rgb(245, 245, 245);
-    color: rgb(74, 74, 74);
+    border-radius: 0.7rem 0.7rem 0.7rem 0;
+    /*background-color: rgb(245, 245, 245);*/
+    font-size: 0.9rem;
+    border: 1px solid #ABAFB2;
+    color: #676E73;
 }
 
 .cb-reply-container.cb-user {
     justify-content: flex-start;
+    width: 90%;
 }
 
 .cb-reply.cb-user {
-    background-color: rgb(72, 95, 199);
+    background: linear-gradient(135deg, #8137A4 0%, #B886EB 100%);
+    border-radius: 0.7rem 0.7rem 0 0.7rem !important;
+    border: unset !important;
     color: white;
 }
 
