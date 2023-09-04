@@ -9,7 +9,7 @@ class Chatbot {
     }
 
     _defaultForm = {
-        action: this.config.endpoint,
+        action: "/",
         fields: [
             {name: "message", type: "text", placeholder: "متن سوال یا پیام"}
         ]
@@ -38,12 +38,22 @@ class Chatbot {
 
         this.messageContainer = document.querySelector('#cb-message-container');
 
+        this.messageContainer.addEventListener('click', (event) => {
+            if (event.target.tagName === 'BUTTON') {
+                this._sendButton(event.target.getAttribute('data-action'));
+            }
+        })
+
         if (this.isOpen) {
             this._toggleChat(true);
         }
 
         if (this.history.length > 0) {
-            this.history.forEach(m => this._appendMessage(m.message, m.isBot));
+            this.history.forEach(m => {
+                this._appendMessage(m.message, m.isBot)
+                this._appendHtml(m.html)
+            });
+
             this._scrollToTheEnd();
         } else {
             this._appendMessage("سلام، چطور می‌تونم کمکتون کنم؟");
@@ -93,30 +103,22 @@ class Chatbot {
         if (this.accessToken) {
             formData.append('access_token', this.accessToken);
         }
-        axios.post(this.form.getAttribute('action'), formData).then((response) => {
-            const firstInput = this.form.querySelector('input')
-            this._appendMessage(firstInput.value, false);
-            this._appendMessage(response.data.custom.message);
-            this._updateForm(response.data.custom.form ?? this._defaultForm);
+        this._callAPI(formData);
+    }
 
-            if (response.data.custom?.access_token) {
-                this._saveToken(response.data.custom.access_token, response.data.custom.refresh_token);
-                this._userLoggedIn(response.data.custom.access_token, response.data.custom.refresh_token);
-            }
+    _sendButton(action) {
+        if (this.processing) {
+            return;
+        }
+        this._toggleSubmission();
+        const formData = new FormData();
+        formData.append('sender', this.sender);
+        formData.append('message', action);
+        if (this.accessToken) {
+            formData.append('access_token', this.accessToken);
+        }
+        this._callAPI(formData);
 
-            this.history.push({message: firstInput.value, isBot: false});
-            this.history.push({message: response.data.custom.message, isBot: true});
-
-            storage.set('cb-history', this.history);
-
-        }).catch((e) => {
-            console.log(e);
-            this._appendMessage(e.response.data.message ?? "خطای ناشناخته");
-        }).then(() => {
-            this._toggleSubmission();
-            this._scrollToTheEnd();
-            this.form.querySelector('input').focus();
-        });
     }
 
     _uuid() {
@@ -125,10 +127,22 @@ class Chatbot {
         );
     }
 
-    _appendMessage(message, isBot = true) {
+    _appendMessage(message, isBot = true, button = null) {
+        if (!message) {
+            return;
+        }
         const replyClass = isBot ? '' : 'cb-user';
+        if (button) {
+            message += `<br/> <button data-action="${button.action}">${button.text}</button>`;
+        }
         this.messageContainer.innerHTML +=
             `<div class="cb-reply-container ${replyClass}"><div class="cb-reply ${replyClass}">${message}</div></div>`
+    }
+
+    _appendHtml(html) {
+        if (!html)
+            return;
+        this.messageContainer.innerHTML += `<div class="cb-reply-container"><div class="cb-reply">${html}</div></div>`;
     }
 
     _toggleSubmission() {
@@ -154,6 +168,43 @@ class Chatbot {
             // html += `<input autocomplete="off" class="cb-input" type="${field.type}" placeholder="${field.placeholder}" name="${field.name}">`
         });
         // this.form.querySelector('#form-inputs').innerHTML = html;
+    }
+
+    _callAPI(formData) {
+        axios.post(this.form.getAttribute('action'), formData).then((response) => {
+            const firstInput = this.form.querySelector('input')
+            this._appendMessage(firstInput.value, false);
+            this._appendMessage(response.data.custom.message, true, response.data.custom.button);
+
+            this._updateForm(response.data.custom.form ?? this._defaultForm);
+
+            if (response.data.custom?.access_token) {
+                this._saveToken(response.data.custom.access_token, response.data.custom.refresh_token);
+                this._userLoggedIn(response.data.custom.access_token, response.data.custom.refresh_token);
+            }
+
+            this.history.push({message: firstInput.value, isBot: false});
+            this.history.push({message: response.data.custom.message, isBot: true});
+
+            if (response.data.custom?.html) {
+                this._appendHtml(response.data.custom.html);
+                this.history.push({message: null, html: response.data.custom.html, isBot: true})
+            }
+
+            if (response.data.custom?.redirect) {
+                window.location.href = response.data.custom.redirect;
+            }
+
+            storage.set('cb-history', this.history);
+
+        }).catch((e) => {
+            console.log(e);
+            this._appendMessage(e.response.data.message ?? "خطای ناشناخته");
+        }).then(() => {
+            this._toggleSubmission();
+            this._scrollToTheEnd();
+            this.form.querySelector('input').focus();
+        });
     }
 
     _saveToken(token, refresh_token) {
