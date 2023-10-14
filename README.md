@@ -12,3 +12,4 @@
 - `chatbot.config.endpoint = "https://url.to.chatbot.service.com"`
 - `chatbot.config.loginListener = (token) => { //tell me when the user is logged in through chatbot }`
 - `chatbot.start()`
+- when the user logs out of the website and you want the chatbot to forget the tokens and log out the user call `chatbot.userLoggedOutFromWebsite()`

@@ -76,8 +76,14 @@ class Chatbot {
         });
     }
 
-    _userLoggedIn(token, refresh_token) {
-        this.config.loginListener(token, refresh_token);
+    userLoggedOutFromWebsite() {
+        axios.post(`${this.config.endpoint}/logged-out`, {sender: this.sender}).then(() => {
+            this._forgetToken();
+        }).catch(console.log);
+    }
+
+    _userLoggedIn(token, refresh_token, expires_in) {
+        this.config.loginListener(token, refresh_token, expires_in);
     }
 
     _toggleChat(isInitial = false) {
@@ -180,7 +186,7 @@ class Chatbot {
 
             if (response.data.custom?.access_token) {
                 this._saveToken(response.data.custom.access_token, response.data.custom.refresh_token);
-                this._userLoggedIn(response.data.custom.access_token, response.data.custom.refresh_token);
+                this._userLoggedIn(response.data.custom.access_token, response.data.custom.refresh_token, response.data.custom.expires_in);
             }
 
             this.history.push({message: firstInput.value, isBot: false});
@@ -211,6 +217,12 @@ class Chatbot {
         storage.set('cb-access-token', token);
         storage.set('cb-refresh-token', refresh_token);
         this.accessToken = token;
+    }
+
+    _forgetToken() {
+        storage.forget('cb-access-token');
+        storage.forget('cb-refresh-token');
+        this.accessToken = null;
     }
 
     _hasEmptyField() {
