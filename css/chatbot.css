@@ -121,7 +121,9 @@
 }
 
 .cb-buttons-container {
-    /*margin-top: 0.6rem;*/
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
     text-align: left;
 }
 

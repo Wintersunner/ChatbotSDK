@@ -5,25 +5,17 @@ class Chatbot {
 
     config = {
         endpoint: null,
-        loginListener: null,
-    }
-
-    _defaultForm = {
-        action: "/",
-        fields: [
-            {name: "message", type: "text", placeholder: "متن سوال یا پیام"}
-        ]
+        actionListener: null,
     }
 
     start() {
         document.body.innerHTML += this.template();
+        this.axios = axios.create({
+            headers: {'Content-Type': "application/json"},
+            withCredentials: true,
+        })
 
-        this.sender = storage.setIfNull('cb-sender', this._uuid());
         this.history = storage.setIfNull('cb-history', []);
-        // this.isOpen = storage.setIfNull('cb-is-open', false);
-        this.isOpen = false;
-        this.isOpen = true;
-        this.accessToken = storage.get('cb-access-token');
         this.processing = false;
 
         this.button = document.querySelector('#cb-chat-trigger-button');
@@ -37,16 +29,13 @@ class Chatbot {
         });
 
         this.messageContainer = document.querySelector('#cb-message-container');
+        this.inputMessageElement = document.querySelector('#input-message');
 
         this.messageContainer.addEventListener('click', (event) => {
             if (event.target.tagName === 'BUTTON') {
-                this._sendButton(event.target.getAttribute('data-action'));
+                this._sendButton(event.target.getAttribute('cb-data-payload'));
             }
         })
-
-        if (this.isOpen) {
-            this._toggleChat(true);
-        }
 
         if (this.history.length > 0) {
             this.history.forEach(m => {
@@ -67,30 +56,13 @@ class Chatbot {
         });
     }
 
-    userLoggedInWebsite(token, refresh_token) {
-        this._saveToken(token, refresh_token);
-        axios.post(`${this.config.endpoint}/logged-in`, {sender: this.sender}).then(() => {
-
-        }).catch(() => {
-            // console.log("Could not save user status");
-        });
+    submitIntent(intent) {
+        this._callAPI({message: `/${intent}`})
     }
 
-    userLoggedOutFromWebsite() {
-        axios.post(`${this.config.endpoint}/logged-out`, {sender: this.sender}).then(() => {
-            this._forgetToken();
-        }).catch(console.log);
-    }
-
-    _userLoggedIn(token, refresh_token, expires_in) {
-        this.config.loginListener(token, refresh_token, expires_in);
-    }
-
-    _toggleChat(isInitial = false) {
+    _toggleChat() {
         this.button.classList.toggle('cb-hidden');
         document.querySelector('#cb-chat-container').classList.toggle('cb-hidden');
-        // if (!isInitial)
-        //     storage.set('cb-is-open', !this.isOpen);
         this._scrollToTheEnd();
     }
 
@@ -99,47 +71,35 @@ class Chatbot {
     }
 
     _send() {
-        if (this.processing || this._hasEmptyField()) {
+        if (this.processing || this.inputMessageElement.value === "") {
             return;
         }
 
         this._toggleSubmission();
-        const formData = new FormData(this.form)
-        formData.append('sender', this.sender);
-        if (this.accessToken) {
-            formData.append('access_token', this.accessToken);
-        }
-        this._callAPI(formData);
+
+        this._callAPI({message: this.inputMessageElement.value});
     }
 
-    _sendButton(action) {
+    _sendButton(payload) {
         if (this.processing) {
             return;
         }
         this._toggleSubmission();
-        const formData = new FormData();
-        formData.append('sender', this.sender);
-        formData.append('message', action);
-        if (this.accessToken) {
-            formData.append('access_token', this.accessToken);
-        }
-        this._callAPI(formData);
-
+        this._callAPI({message: payload});
     }
 
-    _uuid() {
-        return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
-            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-        );
-    }
 
-    _appendMessage(message, isBot = true, button = null) {
+    _appendMessage(message, isBot = true, buttons = []) {
         if (!message) {
             return;
         }
         const replyClass = isBot ? '' : 'cb-user';
-        if (button) {
-            message += `<br/> <button data-action="${button.action}">${button.text}</button>`;
+        if (buttons && buttons.length > 0) {
+            message += `<div class="cb-buttons-container">`
+            buttons.forEach((button) => {
+                message += `<button cb-data-payload="${button.payload}">${button.title}</button>`;
+            })
+            message += `</div>`
         }
         this.messageContainer.innerHTML +=
             `<div class="cb-reply-container ${replyClass}"><div class="cb-reply ${replyClass}">${message}</div></div>`
@@ -156,77 +116,40 @@ class Chatbot {
         this.form.toggleAttribute('disabled');
     }
 
-    _updateForm(form) {
-        const action = this.config.endpoint + form.action;
-        const fields = form.fields;
-        this.form.setAttribute('action', action);
-        // let html = '';
-        this.form.querySelector('#form-inputs').innerHTML = null;
-        fields.forEach((field) => {
-            const input = document.createElement('input');
-            input.setAttribute('type', field.type);
-            input.setAttribute('placeholder', field.placeholder);
-            input.setAttribute('name', field.name);
-            if (field.value) {
-                input.value = field.value;
-            }
-            this.form.querySelector('#form-inputs').appendChild(input);
-            // html += `<input autocomplete="off" class="cb-input" type="${field.type}" placeholder="${field.placeholder}" name="${field.name}">`
-        });
-        // this.form.querySelector('#form-inputs').innerHTML = html;
-    }
 
-    _callAPI(formData) {
-        axios.post(this.form.getAttribute('action'), formData).then((response) => {
-            const firstInput = this.form.querySelector('input')
-            this._appendMessage(firstInput.value, false);
-            this._appendMessage(response.data.custom.message, true, response.data.custom.button);
+    _callAPI(message) {
+        this.axios.post(this.config.endpoint, message).then((response) => {
+            this._appendMessage(this.inputMessageElement.value, false);
+            this.history.push({message: this.inputMessageElement.value, isBot: false});
+            response.data.forEach((message) => {
+                this._appendMessage(message.text, true, message.buttons);
+                this.history.push({message: message.text, isBot: true});
 
-            this._updateForm(response.data.custom.form ?? this._defaultForm);
+                if (message.custom?.html) {
+                    this._appendHtml(message.custom.html);
+                    this.history.push({message: null, html: message.custom.html, isBot: true})
+                }
 
-            if (response.data.custom?.access_token) {
-                this._saveToken(response.data.custom.access_token, response.data.custom.refresh_token);
-                this._userLoggedIn(response.data.custom.access_token, response.data.custom.refresh_token, response.data.custom.expires_in);
-            }
+                if (message.custom?.action && typeof this.config.actionListener === "function") {
+                    this.config.actionListener(message.custom?.action, message.custom?.slots);
+                }
 
-            this.history.push({message: firstInput.value, isBot: false});
-            this.history.push({message: response.data.custom.message, isBot: true});
+                if (message.custom?.redirect) {
+                    window.location.href = message.custom.redirect;
+                }
 
-            if (response.data.custom?.html) {
-                this._appendHtml(response.data.custom.html);
-                this.history.push({message: null, html: response.data.custom.html, isBot: true})
-            }
+                storage.set('cb-history', this.history);
+            })
 
-            if (response.data.custom?.redirect) {
-                window.location.href = response.data.custom.redirect;
-            }
-
-            storage.set('cb-history', this.history);
+            this.inputMessageElement.value = "";
 
         }).catch((e) => {
-            console.log(e);
-            this._appendMessage(e.response.data.message ?? "خطای ناشناخته");
+            this._appendMessage(e.response.data.error ?? "خطای ناشناخته");
         }).then(() => {
             this._toggleSubmission();
             this._scrollToTheEnd();
             this.form.querySelector('input').focus();
         });
-    }
-
-    _saveToken(token, refresh_token) {
-        storage.set('cb-access-token', token);
-        storage.set('cb-refresh-token', refresh_token);
-        this.accessToken = token;
-    }
-
-    _forgetToken() {
-        storage.forget('cb-access-token');
-        storage.forget('cb-refresh-token');
-        this.accessToken = null;
-    }
-
-    _hasEmptyField() {
-        return [...document.querySelector('#form-inputs').querySelectorAll('input')].some(i => i.value === "");
     }
 
     template() {
@@ -261,7 +184,8 @@ class Chatbot {
                         </div>
                         <form class="cb-forms-container" name="cb-form">
                             <div id="form-inputs">
-                                <input autocomplete="off" name="message" class="cb-input" placeholder="چه سوالی دارید؟">
+                                <input autocomplete="off" id="input-message"
+                                 name="message" class="cb-input" placeholder="سوال یا پیام خود را بنویسید">
                             </div>
                             <div class="cb-buttons-container">
                                 <button class="cb-submit">

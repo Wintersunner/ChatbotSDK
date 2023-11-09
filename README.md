@@ -10,6 +10,6 @@
 - `import the chatbot.css file in your js or scss or wherever you desire`
 - `import chatbot from "chatbotsdk"`
 - `chatbot.config.endpoint = "https://url.to.chatbot.service.com"`
-- `chatbot.config.loginListener = (token) => { //tell me when the user is logged in through chatbot }`
+- `chatbot.config.actionListener = (action, slots) => { //this function is called whenever a custom action is ran on the server }`
 - `chatbot.start()`
-- when the user logs out of the website and you want the chatbot to forget the tokens and log out the user call `chatbot.userLoggedOutFromWebsite()`
+- to force submit any intent to the chat e.g. Logout use `chatbot.submitIntent('logout')`
