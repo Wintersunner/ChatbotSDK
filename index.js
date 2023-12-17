@@ -60,6 +60,10 @@ class Chatbot {
         this._callAPI({message: `/${intent}`})
     }
 
+    setSlots(obj) {
+        return this._callSlots(obj)
+    }
+
     _toggleChat() {
         this.button.classList.toggle('cb-hidden');
         document.querySelector('#cb-chat-container').classList.toggle('cb-hidden');
@@ -150,6 +154,16 @@ class Chatbot {
             this._scrollToTheEnd();
             this.form.querySelector('input').focus();
         });
+    }
+
+    async _callSlots(obj) {
+        let url = new URL(this.config.endpoint)
+        try {
+            const response = await this.axios.post(`${url.origin}/chatbot/set_slot`, obj);
+            return response.status === 200;
+        } catch (err) {
+            return false;
+        }
     }
 
     template() {

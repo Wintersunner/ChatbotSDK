@@ -13,3 +13,5 @@
 - `chatbot.config.actionListener = (action, slots) => { //this function is called whenever a custom action is ran on the server }`
 - `chatbot.start()`
 - to force submit any intent to the chat e.g. Logout use `chatbot.submitIntent('logout')`
+- to set slots use chatbot.setSlots() method like:
+  `chatbot.setSlots({"slots": {"is_authenticated": true}})`
